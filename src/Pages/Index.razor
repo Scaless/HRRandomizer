@@ -5,7 +5,8 @@
 @using HRRandomizer.Data
 @using System.IO
 @using System.Text
-@inject WeatherForecastService ForecastService
+@using Newtonsoft.Json
+@*@inject WeatherForecastService ForecastService*@
 @inject IJSRuntime JS
 
 <h1>MCC Playlist Randomizer</h1>
@@ -21,15 +22,15 @@
                 <input @oninput="UpdateSeed" class="form-control" value="@config.Seed" />
             </div>
 
-           @* <div class="input-group">
+            @* <div class="input-group">
                 <div class="input-group-text">
-                    <input class="form-check-input mt-0" type="checkbox" @onchange="UpdateIncludeCutscenes" checked=@config.IncludeCutscenes>
+                <input class="form-check-input mt-0" type="checkbox" @onchange="UpdateIncludeCutscenes" checked=@config.IncludeCutscenes>
                 </div>
                 <label class="input-group-text" data-bs-toggle="tooltip" data-bs-placement="top"
-                       title="Controls whether levels that are exclusively cutscenes should be included in the playlist.">
-                    Include Cutscenes
+                title="Controls whether levels that are exclusively cutscenes should be included in the playlist.">
+                Include Cutscenes
                 </label>
-            </div>*@
+                </div>*@
 
             <div class="input-group">
                 <div class="input-group-text">
@@ -102,13 +103,13 @@
                 @{
                     var UniqueGames = Enum.GetValues<Game>();
                 }
-                @foreach (var game in SelectedGames)
+                @foreach (var game in Halo.AllMissions.Select(x => x.Game).Distinct().ToList())
                 {
-                    int GameMissionCount = SelectedMissions.Where(x => x.Mission.Game == game.Key).Count();
-                    int GameMissionsSelected = SelectedMissions.Where(x => x.Mission.Game == game.Key).Count(x => x.Enabled == true);
+                    int GameMissionCount = config.SelectedMissions.Where(x => x.Mission.Game == game).Count();
+                    int GameMissionsSelected = config.SelectedMissions.Where(x => x.Mission.Game == game).Count(x => x.Enabled == true);
                     bool GameChecked = GameMissionCount == GameMissionsSelected;
 
-                    List<SelectedMission> GameMissions = SelectedMissions.Where(x => x.Mission.Game == game.Key).ToList();
+                    List<SelectedMission> GameMissions = config.SelectedMissions.Where(x => x.Mission.Game == game).ToList();
                     int MissionCountHalf = GameMissions.Count() / 2;
 
                     List<SelectedMission> SelectedMissionsFirst = new List<SelectedMission>();
@@ -126,13 +127,13 @@
                     }
 
                     <li class="list-group-item p-1">
-                        <input class="form-check-input me-1" type="checkbox" @onchange="(e) => UpdateSelectedGame(game.Key, e)" checked=@GameChecked id=@game.Key.ToString().ToLower()>
-                        <span>@game.Key.ToString()</span>
+                        <input class="form-check-input me-1" type="checkbox" @onchange="(e) => UpdateSelectedGame(game, e)" checked=@GameChecked id=@game.ToString().ToLower()>
+                        <span>@game.ToString()</span>
 
                         <div class="row">
                             <div class="col-sm-6">
                                 <ul>
-                                    @foreach (var mission in SelectedMissionsFirst.Where(x => x.Mission.Game == game.Key))
+                                    @foreach (var mission in SelectedMissionsFirst.Where(x => x.Mission.Game == game))
                                     {
                                         <li class="list-group-item p-sm-0 border-0">
                                             <input class="form-check-input me-1" @onchange="(e) => UpdateSelectedMission(mission.Mission.MapName, mission.Mission.InsertionPoint, e)" checked=@mission.Enabled type="checkbox" value="@mission.Mission.MapName">
@@ -143,7 +144,7 @@
                             </div>
                             <div class="col-sm-6">
                                 <ul>
-                                    @foreach (var mission in SelectedMissionsSecond.Where(x => x.Mission.Game == game.Key))
+                                    @foreach (var mission in SelectedMissionsSecond.Where(x => x.Mission.Game == game))
                                     {
                                         <li class="list-group-item p-sm-0 border-0">
                                             <input class="form-check-input me-1" @onchange="(e) => UpdateSelectedMission(mission.Mission.MapName, mission.Mission.InsertionPoint, e)" checked=@mission.Enabled type="checkbox" value="@mission.Mission.MapName">
@@ -167,7 +168,7 @@
     <div class="col-lg-12">
         <div class="input-group">
             <span class="input-group-text">Share Code</span>
-            <input type="text" class="form-control" value="Not Implemented Yet">
+            <input type="text" class="form-control" value="@config.ShareCode">
         </div>
     </div>
 </div>
@@ -230,13 +231,9 @@
 
     <h3>Why does my playlist have cutscenes in it?</h3>
     <p>
-        Playing the same mission back-to-back in a playlist will cause MCC to hang. 
-        To get around this, the randomizer inserts a cutscene between duplicate missions.
-        The cutscene that plays will be preferred based on the game the mission is from. 
-    </p>
-    <p>
-        The exception to this is Halo 1, which does not have any exclusive cutscene levels to use as transitions.
-        Instead, the Halo 2 mission The Heretic is used instead and requires that the Halo 2 Campaign is installed.
+        MCC does not handle playing the same mission back-to-back or switching difficulty mid-run very well.
+        To avoid crashing the game, the randomizer inserts a cutscene from a different game in order to reset the game state.
+        The cutscenes that play will be preferred based on the games that you have selected as installed.
     </p>
 </div>
 
@@ -244,9 +241,6 @@
 
 @code {
     private RandomizerConfig config = new RandomizerConfig();
-
-    private List<SelectedMission> SelectedMissions = new List<SelectedMission>();
-    private Dictionary<Game, bool> SelectedGames = new Dictionary<Game, bool>();
 
     private int hideMissions = 0;
     private void ToggleHideMissions()
@@ -279,62 +273,38 @@
 
     protected override void OnInitialized()
     {
-        foreach (var mission in Missions)
+        foreach (var mission in Halo.AllMissions)
         {
             if (mission.IsCutscene)
                 continue;
-            SelectedMissions.Add(new SelectedMission() { Mission = mission, Enabled = !mission.IsCutscene });
-        }
-        foreach (var game in Enum.GetValues<Game>())
-        {
-            SelectedGames.Add(game, true);
+            config.SelectedMissions.Add(new SelectedMission() { Mission = mission, Enabled = !mission.IsCutscene, MapName = mission.MapName });
         }
 
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void UpdateDifficulty(ChangeEventArgs e)
     {
         config.Difficulty = Enum.Parse<GameDifficulty>(e?.Value?.ToString() ?? "Easy");
-        Reshuffle();
-    }
-
-    void UpdateGames(ChangeEventArgs e)
-    {
-        try
-        {
-            string[]? newGames = e.Value as string[];
-            if (newGames != null)
-            {
-                config.Games.Clear();
-                foreach (var game in newGames)
-                {
-                    config.Games.Add(Enum.Parse<Game>(game, true));
-                }
-            }
-        }
-        catch (Exception)
-        {
-        }
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void UpdateSeed(ChangeEventArgs e)
     {
         config.Seed = e.Value as string ?? "";
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void UpdateShuffle(ChangeEventArgs e)
     {
         config.IsShuffleEnabled = e.Value as bool? ?? false;
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void UpdateDuplicates(ChangeEventArgs e)
     {
         config.AllowDuplicates = e.Value as bool? ?? false;
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void UpdateSelectedGame(Game game, ChangeEventArgs e)
@@ -342,7 +312,7 @@
         bool? bNew = e.Value as bool?;
         if (bNew.HasValue)
         {
-            foreach (var mission in SelectedMissions)
+            foreach (var mission in config.SelectedMissions)
             {
                 if (mission.Mission.Game == game)
                 {
@@ -351,7 +321,7 @@
             }
         }
 
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void UpdateSelectedMission(string missionName, int insertionPoint, ChangeEventArgs e)
@@ -359,13 +329,13 @@
         bool? bNew = e.Value as bool?;
         if (bNew.HasValue)
         {
-            var mission = SelectedMissions.FirstOrDefault(x => x.Mission.MapName == missionName && x.Mission.InsertionPoint == insertionPoint);
+            var mission = config.SelectedMissions.FirstOrDefault(x => x.Mission.MapName == missionName && x.Mission.InsertionPoint == insertionPoint);
             if (mission != null)
             {
                 mission.Enabled = bNew.Value;
 
-                int GameMissionCount = SelectedMissions.Where(x => x.Mission.Game == mission.Mission.Game).Count();
-                int GameMissionsSelected = SelectedMissions.Where(x => x.Mission.Game == mission.Mission.Game).Count(x => x.Enabled == true);
+                int GameMissionCount = config.SelectedMissions.Where(x => x.Mission.Game == mission.Mission.Game).Count();
+                int GameMissionsSelected = config.SelectedMissions.Where(x => x.Mission.Game == mission.Mission.Game).Count(x => x.Enabled == true);
                 bool GameChecked = GameMissionCount == GameMissionsSelected;
 
                 if (GameMissionsSelected > 0 && GameMissionCount != GameMissionsSelected)
@@ -379,23 +349,23 @@
             }
         }
 
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void UpdateIncludeCutscenes(ChangeEventArgs e)
     {
         config.IncludeCutscenes = e.Value as bool? ?? false;
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void UpdateHidePlaylist(ChangeEventArgs e)
     {
         config.HidePlaylist = e.Value as bool? ?? false;
-        if(config.HidePlaylist)
+        if (config.HidePlaylist)
         {
             hideMissions = 0;
         }
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void UpdateCountLimit(ChangeEventArgs e)
@@ -412,7 +382,7 @@
                 }
             }
         }
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void UpdateTimeLimit(ChangeEventArgs e)
@@ -429,7 +399,7 @@
                 }
             }
         }
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void UpdateFudgeFactor(ChangeEventArgs e)
@@ -446,128 +416,13 @@
                 }
             }
         }
-        Reshuffle();
+        config.Reshuffle();
     }
 
     void RerollSeed()
     {
-        config.Seed = Randomizer.RandomWord();
-        Reshuffle();
-    }
-
-    GameDifficulty NextDifficulty(Random rng)
-    {
-        int value = rng.Next(0, 4);
-        switch (value)
-        {
-            case 0: return GameDifficulty.Easy;
-            case 1: return GameDifficulty.Normal;
-            case 2: return GameDifficulty.Heroic;
-            case 3: return GameDifficulty.Legendary;
-        }
-        return GameDifficulty.Easy;
-    }
-
-    void Reshuffle()
-    {
-        config.Missions.Clear();
-        int realSeed = config.Seed.GetHashCode();
-        Random rng = new Random(realSeed);
-
-        TimeSpan runningTime = new TimeSpan();
-        List<Mission> MissionCopy = SelectedMissions.Where(x => x.Enabled).Select(x => x.Mission).ToList();
-
-    DuplicateRestart:
-        if (config.IsShuffleEnabled)
-        {
-            Shuffle(MissionCopy, rng);
-        }
-
-        foreach (var mission in MissionCopy)
-        {
-            if (!config.Games.Contains(mission.Game))
-            {
-                continue;
-            }
-            if (!config.IncludeCutscenes && mission.IsCutscene)
-            {
-                continue;
-            }
-            // Enforce Time Limit
-            if (config.TimeLimitMinutes.HasValue 
-                && ((runningTime + (mission.WRTime * (config.FudgeFactor ?? 1.25))) >= TimeSpan.FromMinutes(config.TimeLimitMinutes.Value)))
-            {
-                continue;
-            }
-
-            // Hard Limit in case something goes wrong with generation
-            if (config.Missions.Count >= 99)
-            {
-                break;
-            }
-
-            GeneratedMission m = new GeneratedMission();
-            m.Mission = mission;
-            m.Difficulty = (config.Difficulty == GameDifficulty.Random) ? NextDifficulty(rng) : config.Difficulty;
-
-            //if(config.HidePlaylist && config.Missions.Count() == 0)
-            //{
-            //    // Insert cutscenes to pad out the start of the playlist.
-            //    Mission DefaultCutscene = GetGameDefaultCutscene(m.Mission.Game);
-            //    GeneratedMission cutsceneMission = new GeneratedMission();
-            //    cutsceneMission.Mission = DefaultCutscene;
-            //    cutsceneMission.Difficulty = GameDifficulty.Easy;
-            //    for(int i = 0; i < 7; i++)
-            //    {
-            //        config.Missions.Add(cutsceneMission);
-            //    }
-            //}
-
-            // Insert a cutscene if the previous mission was the same as the current one
-            // This is to prevent a bug in MCC where playing the same mission twice in a row will
-            // cause the game to hang.
-            GeneratedMission? PreviousMission = config.Missions.LastOrDefault();
-            if((PreviousMission?.Mission.MapName == m.Mission.MapName) && (PreviousMission?.Mission.InsertionPoint == m.Mission.InsertionPoint))
-            {
-                Mission DefaultCutscene = GetGameDefaultCutscene(m.Mission.Game);
-                GeneratedMission cutsceneMission = new GeneratedMission();
-                cutsceneMission.Mission = DefaultCutscene;
-                cutsceneMission.Difficulty = GameDifficulty.Easy;
-                config.Missions.Add(cutsceneMission);
-                runningTime += cutsceneMission.Mission.WRTime;
-            }
-
-            config.Missions.Add(m);
-            runningTime += (mission.WRTime * (config.FudgeFactor ?? 1.25));
-
-            if (config.AllowDuplicates)
-            {
-                goto DuplicateRestart;
-            }
-        }
-
-        if (config.CountLimit != null)
-        {
-            config.Missions = config.Missions.Take(config.CountLimit.Value).ToList();
-        }
-    }
-
-    private Mission GetGameDefaultCutscene(Game game)
-    {
-        if(game == Game.Halo1)
-        {
-            game = Game.Halo2;
-        }
-
-        switch(game)
-        {
-            case Game.Halo2: return Missions.First(x => x.Game == Game.Halo2 && x.FriendlyName == "Heretic");
-            case Game.Halo3: return Missions.First(x => x.Game == Game.Halo3 && x.FriendlyName == "Epilogue");
-            case Game.Halo3ODST: return Missions.First(x => x.Game == Game.Halo3ODST && x.FriendlyName == "Epilogue");
-            case Game.HaloReach: return Missions.First(x => x.Game == Game.HaloReach && x.FriendlyName == "The Pillar of Autumn (Credits)");
-            case Game.Halo4: return Missions.First(x => x.Game == Game.Halo4 && x.FriendlyName == "Epilogue");
-            default: return Missions.First(x => x.Game == Game.Halo2 && x.FriendlyName == "Heretic");
-        }
+        config.Seed = RandomizerWords.RandomWord();
+        config.Reshuffle();
     }
 
     private async Task DownloadMissionXMLFromStream()
@@ -590,38 +445,6 @@
         return stream;
     }
 
-    public static void Shuffle<T>(IList<T> list, Random rng)
-    {
-        int n = list.Count;
-
-        while (n > 1)
-        {
-            n--;
-            int k = rng.Next(n + 1);
-            T value = list[k];
-            list[k] = list[n];
-            list[n] = value;
-        }
-    }
-
-    public class RandomizerConfig
-    {
-        public string Seed { get; set; } = Randomizer.RandomWord();
-        public GameDifficulty Difficulty { get; set; }
-        public List<Game> Games { get; set; } = new List<Game>()
-        {
-            Game.Halo1, Game.Halo2, Game.Halo3, Game.Halo3ODST, Game.HaloReach, Game.Halo4
-        };
-        public bool IncludeCutscenes { get; set; } = false;
-        public bool IsShuffleEnabled { get; set; } = true;
-        public bool AllowDuplicates { get; set; } = false;
-        public bool HidePlaylist { get; set; } = false;
-        public int? CountLimit { get; set; } = 20;
-        public int? TimeLimitMinutes { get; set; } = null;
-        public float? FudgeFactor { get; set; } = 1.25f;
-        public List<GeneratedMission> Missions { get; set; } = new List<GeneratedMission>();
-    }
-
     private Stream GenerateXMLStream()
     {
         StringBuilder XML = new StringBuilder();
@@ -641,7 +464,7 @@
         foreach (GeneratedMission mission in config.Missions)
         {
             string InsertionPoint = mission.Mission.InsertionPoint > 0 ? @$"insertionpoint=""{mission.Mission.InsertionPoint}""" : "";
-            XML.AppendLine($@"				<Map id=""{mission.Mission.MapName}"" diffID=""{DifficultyToXML(mission.Difficulty)}"" {InsertionPoint} />");
+            XML.AppendLine($@"				<Map id=""{mission.Mission.MapName}"" diffID=""{Halo.DifficultyToXML(mission.Difficulty)}"" {InsertionPoint} />");
         }
 
         XML.Append(@"			</MapList>
@@ -658,143 +481,4 @@
         return fileStream;
     }
 
-
-    public enum GameDifficulty
-    {
-        Easy,
-        Normal,
-        Heroic,
-        Legendary,
-        Random
-    }
-
-    public enum Game
-    {
-        Halo1,
-        Halo2,
-        Halo3,
-        Halo3ODST,
-        HaloReach,
-        Halo4
-    }
-
-    public class GeneratedMission
-    {
-        public Mission Mission { get; set; }
-        public GameDifficulty Difficulty { get; set; }
-    }
-
-    public class SelectedMission
-    {
-        public Mission Mission { get; set; }
-        public bool Enabled { get; set; } = true;
-    }
-
-    public struct Mission
-    {
-        public Mission() { }
-
-        public Game Game { get; set; } = Game.Halo1;
-        public string FriendlyName { get; set; } = "";
-        public string MapName { get; set; } = "";
-        public int InsertionPoint { get; set; } = 0;
-        public bool IsCutscene { get; set; } = false;
-        public TimeSpan WRTime { get; set; } = TimeSpan.FromMinutes(5);
-    }
-
-    public static readonly Mission[] Missions = new[]
-                                                                                                            {
-        new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(5), FriendlyName="Pillar of Autumn", MapName="_map_id_halo1_pillar_of_autumn" },
-        new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(10), FriendlyName="Halo", MapName="_map_id_halo1_halo" },
-        new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(7), FriendlyName="Truth and Reconciliation", MapName="_map_id_halo1_truth_and_reconciliation" },
-        new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(4), FriendlyName="Silent Cartographer", MapName="_map_id_halo1_silent_cartographer" },
-        new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(5), FriendlyName="Assault on the Control Room", MapName="_map_id_halo1_assault_on_the_control_room" },
-        new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(4), FriendlyName="343 Guilty Spark", MapName="_map_id_halo1_343_guilty_spark" },
-        new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(11), FriendlyName="The Library", MapName="_map_id_halo1_the_library" },
-        new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(7), FriendlyName="Two Betrayals", MapName="_map_id_halo1_two_betrayals" },
-        new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(3), FriendlyName="Keyes", MapName="_map_id_halo1_keyes" },
-        new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(7), FriendlyName="The Maw", MapName="_map_id_halo1_the_maw" },
-
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Heretic", MapName="_map_id_halo2_the_heretic", IsCutscene=true },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(3), FriendlyName="The Armory", MapName="_map_id_halo2_the_armory" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(5), FriendlyName="Cairo Station", MapName="_map_id_halo2_cairo_station" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(4), FriendlyName="Outskirts", MapName="_map_id_halo2_outskirts" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(4), FriendlyName="Metropolis", MapName="_map_id_halo2_metropolis" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(3), FriendlyName="The Arbiter", MapName="_map_id_halo2_the_arbiter" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(11), FriendlyName="The Oracle", MapName="_map_id_halo2_the_oracle" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(3), FriendlyName="Delta Halo", MapName="_map_id_halo2_delta_halo" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(10), FriendlyName="Regret", MapName="_map_id_halo2_regret" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(8), FriendlyName="Sacred Icon", MapName="_map_id_halo2_sacred_icon" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(7), FriendlyName="Quarantine Zone", MapName="_map_id_halo2_quarantine_zone" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(7), FriendlyName="Gravemind", MapName="_map_id_halo2_gravemind" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(2), FriendlyName="Uprising", MapName="_map_id_halo2_uprising" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(2), FriendlyName="High Charity", MapName="_map_id_halo2_high_charity" },
-        new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(7), FriendlyName="The Great Journey", MapName="_map_id_halo2_the_great_journey" },
-
-        new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Arrival", MapName="_map_id_halo3_arrival", IsCutscene=true },
-        new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(6), FriendlyName="Sierra 117", MapName="_map_id_halo3_sierra_117" },
-        new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(8), FriendlyName="Crows Nest", MapName="_map_id_halo3_crows_nest" },
-        new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(4), FriendlyName="Tsavo Highway", MapName="_map_id_halo3_tsavo_highway" },
-        new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(5), FriendlyName="The Storm", MapName="_map_id_halo3_the_storm" },
-        new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(3), FriendlyName="Floodgate", MapName="_map_id_halo3_floodgate" },
-        new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(10), FriendlyName="The Ark", MapName="_map_id_halo3_the_ark" },
-        new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(10), FriendlyName="The Covenant", MapName="_map_id_halo3_the_covenant" },
-        new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(6), FriendlyName="Cortana", MapName="_map_id_halo3_cortana" },
-        new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(10), FriendlyName="Halo", MapName="_map_id_halo3_halo" },
-        new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Epilogue", MapName="_map_id_halo3_epilogue", IsCutscene=true },
-
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Prepare to Drop (Cutscene)", MapName="_map_id_halo3odst_prepare_to_drop", IsCutscene=true },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(2), FriendlyName="Mombasa Streets (Prepare to Drop)", MapName="_map_id_halo3odst_mombasa_streets" },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(2), FriendlyName="Tayari Plaza", MapName="_map_id_halo3odst_tayari_plaza" },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(3), FriendlyName="Mombasa Streets (Drone Optic)", MapName="_map_id_halo3odst_mombasa_streets", InsertionPoint=1 },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(2), FriendlyName="Uplift Reserve", MapName="_map_id_halo3odst_uplift_reserve"},
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(3), FriendlyName="Mombasa Streets (Gauss Turret)", MapName="_map_id_halo3odst_mombasa_streets", InsertionPoint=2 },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(3), FriendlyName="Kizingo Boulevard", MapName="_map_id_halo3odst_kizingo_boulevard" },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(1), FriendlyName="Mombasa Streets (Remote Detonator)", MapName="_map_id_halo3odst_mombasa_streets", InsertionPoint=3 },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(8), FriendlyName="ONI Alpha Site", MapName="_map_id_halo3odst_oni_alpha_site" },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(2), FriendlyName="Mombasa Streets (Sniper Rifle)", MapName="_map_id_halo3odst_mombasa_streets", InsertionPoint=4 },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(5), FriendlyName="NMPD HQ", MapName="_map_id_halo3odst_nmpd_hq" },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(1), FriendlyName="Mombasa Streets (Biofoam Canister)", MapName="_map_id_halo3odst_mombasa_streets", InsertionPoint=5 },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(3), FriendlyName="Kikowani Station", MapName="_map_id_halo3odst_kikowani_station" },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(1), FriendlyName="Mombasa Streets (Data Hive)", MapName="_map_id_halo3odst_mombasa_streets", InsertionPoint=6 },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(10), FriendlyName="Data Hive", MapName="_map_id_halo3odst_data_hive" },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(16), FriendlyName="Coastal Highway", MapName="_map_id_halo3odst_coastal_highway" },
-        new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Epilogue", MapName="_map_id_halo3odst_epilogue", IsCutscene=true },
-
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Noble Actual", MapName="_map_id_haloreach_noble_actual", IsCutscene=true },
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(5), FriendlyName="Winter Contingency", MapName="_map_id_haloreach_winter_contingency" },
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(5), FriendlyName="ONI Sword Base", MapName="_map_id_haloreach_oni_sword_base" },
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(3), FriendlyName="Nightfall", MapName="_map_id_haloreach_nightfall" },
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(5), FriendlyName="Tip of the Spear", MapName="_map_id_haloreach_tip_of_the_spear" },
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(11), FriendlyName="Long Night of Solace", MapName="_map_id_haloreach_long_night_of_solace" },
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(9), FriendlyName="Exodus", MapName="_map_id_haloreach_exodus" },
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(7), FriendlyName="New Alexandria", MapName="_map_id_haloreach_new_alexandria" },
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(8), FriendlyName="The Package", MapName="_map_id_haloreach_the_package" },
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(9), FriendlyName="The Pillar of Autumn", MapName="_map_id_haloreach_the_pillar_of_autumn" },
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(0), FriendlyName="The Pillar of Autumn (Credits)", MapName="_map_id_haloreach_the_pillar_of_autumn_credits", IsCutscene=true },
-        new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Lone Wolf", MapName="_map_id_haloreach_lone_wolf", IsCutscene=true },
-
-        new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Prologue", MapName="_map_id_halo4_prologue", IsCutscene=true },
-        new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(4), FriendlyName="Dawn", MapName="_map_id_halo4_dawn" },
-        new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(8), FriendlyName="Requiem", MapName="_map_id_halo4_requiem" },
-        new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(10), FriendlyName="Forerunner", MapName="_map_id_halo4_forerunner" },
-        new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(13), FriendlyName="Infinity", MapName="_map_id_halo4_infinity" },
-        new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(11), FriendlyName="Reclaimer", MapName="_map_id_halo4_reclaimer" },
-        new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(4), FriendlyName="Shutdown", MapName="_map_id_halo4_shutdown" },
-        new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(9), FriendlyName="Composer", MapName="_map_id_halo4_composer" },
-        new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(13), FriendlyName="Midnight", MapName="_map_id_halo4_midnight" },
-        new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromSeconds(15), FriendlyName="Epilogue", MapName="_map_id_halo4_epilogue", IsCutscene=true },
-    };
-
-    public string DifficultyToXML(GameDifficulty difficulty)
-    {
-        switch (difficulty)
-        {
-            case GameDifficulty.Easy: return "_campaign_difficulty_level_easy";
-            case GameDifficulty.Normal: return "_campaign_difficulty_level_normal";
-            case GameDifficulty.Heroic: return "_campaign_difficulty_level_hard";
-            case GameDifficulty.Legendary: return "_campaign_difficulty_level_impossible";
-            default: return "";
-        }
-    }
 }
