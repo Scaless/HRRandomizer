@@ -22,16 +22,6 @@
                 <input @oninput="UpdateSeed" class="form-control" value="@config.Seed" />
             </div>
 
-            @* <div class="input-group">
-                <div class="input-group-text">
-                <input class="form-check-input mt-0" type="checkbox" @onchange="UpdateIncludeCutscenes" checked=@config.IncludeCutscenes>
-                </div>
-                <label class="input-group-text" data-bs-toggle="tooltip" data-bs-placement="top"
-                title="Controls whether levels that are exclusively cutscenes should be included in the playlist.">
-                Include Cutscenes
-                </label>
-                </div>*@
-
             <div class="input-group">
                 <div class="input-group-text">
                     <input class="form-check-input mt-0" type="checkbox" @onchange="UpdateHidePlaylist" checked=@config.HidePlaylist>
@@ -126,7 +116,7 @@
                         i++;
                     }
 
-                    <li class="list-group-item p-1">
+                    <li class="list-group-item p-3">
                         <input class="form-check-input me-1" type="checkbox" @onchange="(e) => UpdateSelectedGame(game, e)" checked=@GameChecked id=@game.ToString().ToLower()>
                         <span>@game.ToString()</span>
 
@@ -168,7 +158,7 @@
     <div class="col-lg-12">
         <div class="input-group">
             <span class="input-group-text">Share Code</span>
-            <input type="text" class="form-control" value="@config.ShareCode">
+            <input type="text" @oninput="UpdateShareCode" onfocus="this.select();" class="form-control" value="@config.ShareCode">
         </div>
     </div>
 </div>
@@ -178,9 +168,32 @@
 <div class="row container">
     <div class="col-lg-12">
         @{
-            string MissionStr = config.HidePlaylist ? "??" : config.Missions.Count().ToString();
+            string GamesRequired = "";
+            if(config.GamesRequired != null)
+            {
+                GamesRequired = string.Join(", ", config.GamesRequired.ToList().OrderBy(x => x));
+            }
         }
-        <h3>@MissionStr Missions in Playlist</h3>
+        <h3>Installed Games Required: @GamesRequired</h3>
+    </div>
+</div>
+
+<hr />
+
+
+<div class="row container">
+    <div class="col-lg-12">
+        @{
+            string RealMissionCountStr = config.HidePlaylist ? "??" : config.Missions.Where(x => !x.Mission.IsCutscene).Count().ToString();
+            int CutsceneMissionCount = config.HidePlaylist ? 0 : config.Missions.Where(x => x.Mission.IsCutscene).Count();
+            string AdditionalCutsceneStr = "";
+            if(CutsceneMissionCount > 0)
+            {
+                AdditionalCutsceneStr = $"(+{CutsceneMissionCount} Cutscenes)";
+            }
+        }
+        <h3>@RealMissionCountStr Missions in Playlist @AdditionalCutsceneStr</h3>
+        <h3>Estimated Run Time: @config.RunningTime.ToString()</h3>
         <button hidden=@config.HidePlaylist @onclick="ToggleHideMissions">@(GetHideMissionsText())</button>
     </div>
 </div>
@@ -204,7 +217,7 @@
                     <td>@mission.Mission.Game.ToString()</td>
                     <td>@mission.Mission.FriendlyName.ToString()</td>
                     <td>@mission.Difficulty.ToString()</td>
-                    <td>@GetMissionLengthString(mission.Mission)</td>
+                    <td>@GetMissionLengthString(mission)</td>
                 </tr>
             }
         </tbody>
@@ -229,11 +242,15 @@
 <div class="row container">
     <h1>Q&A</h1>
 
-    <h3>Why does my playlist have cutscenes in it?</h3>
+    <h3>Why does my playlist have cutscenes from other games in it?</h3>
     <p>
         MCC does not handle playing the same mission back-to-back or switching difficulty mid-run very well.
         To avoid crashing the game, the randomizer inserts a cutscene from a different game in order to reset the game state.
-        The cutscenes that play will be preferred based on the games that you have selected as installed.
+        The cutscenes that play will be preferred based on the games that are in the playlist.
+    </p>
+    <p>
+        If multiple games are in the possible mission selections, we will try to insert cutscenes from those games.
+        If this is not possible, ODST will prefer Reach cutscenes, and all other games will prefer ODST cutscenes.
     </p>
 </div>
 
@@ -265,9 +282,9 @@
         }
     }
 
-    private MarkupString GetMissionLengthString(Mission mission)
+    private MarkupString GetMissionLengthString(GeneratedMission gm)
     {
-        TimeSpan v = mission.IsCutscene ? mission.WRTime : (mission.WRTime * (config.FudgeFactor ?? 1.25));
+        TimeSpan v = gm.Mission.IsCutscene ? gm.Mission.WRTime : (gm.Mission.WRTime * (config.FudgeFactor ?? 1.25));
         return new MarkupString($"{v.Minutes} Min {v.Seconds} Sec");
     }
 
@@ -292,6 +309,12 @@
     void UpdateSeed(ChangeEventArgs e)
     {
         config.Seed = e.Value as string ?? "";
+        config.Reshuffle();
+    }
+
+    void UpdateShareCode(ChangeEventArgs e)
+    {
+        config.FromShareCode(e.Value as string ?? "");
         config.Reshuffle();
     }
 
@@ -349,12 +372,6 @@
             }
         }
 
-        config.Reshuffle();
-    }
-
-    void UpdateIncludeCutscenes(ChangeEventArgs e)
-    {
-        config.IncludeCutscenes = e.Value as bool? ?? false;
         config.Reshuffle();
     }
 
@@ -459,7 +476,7 @@
 	<Halo4 />
 	<CrossTitle>");
 
-        XML.AppendLine($@"		<Playlist id=""{config.Seed}"" name=""Randomizer Playlist"" desc=""Seed: {config.Seed} | Randomizer Version 3"" image=""CT_Setlist_Preview_01"" highestDiffID=""_campaign_difficulty_level_easy"" hasRallyPoints=""false"">");
+        XML.AppendLine($@"		<Playlist id=""{config.Seed}"" name=""Randomizer Playlist"" desc=""{config.ToShareCode()}"" image=""CT_Setlist_Preview_01"" highestDiffID=""_campaign_difficulty_level_easy"" hasRallyPoints=""false"">");
         XML.AppendLine($@"			<MapList>");
         foreach (GeneratedMission mission in config.Missions)
         {

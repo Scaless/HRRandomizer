@@ -36,16 +36,24 @@ namespace HRRandomizer.Data
 
         public static string Decompress(string s)
         {
-            var bytes = Convert.FromBase64String(s);
-            using (var msi = new MemoryStream(bytes))
-            using (var mso = new MemoryStream())
+            try
             {
-                using (var gs = new GZipStream(msi, CompressionMode.Decompress))
+                var bytes = Convert.FromBase64String(s);
+                using (var msi = new MemoryStream(bytes))
+                using (var mso = new MemoryStream())
                 {
-                    gs.CopyTo(mso);
+                    using (var gs = new GZipStream(msi, CompressionMode.Decompress))
+                    {
+                        gs.CopyTo(mso);
+                    }
+                    return Encoding.Unicode.GetString(mso.ToArray());
                 }
-                return Encoding.Unicode.GetString(mso.ToArray());
             }
+            catch (Exception ex)
+            {
+                return "";
+            }
+            
         }
     }
 }

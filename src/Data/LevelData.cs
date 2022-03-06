@@ -62,7 +62,7 @@ namespace HRRandomizer.Data
             new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(3), FriendlyName="Keyes", MapName="_map_id_halo1_keyes" },
             new Mission() { Game = Game.Halo1, WRTime = TimeSpan.FromMinutes(7), FriendlyName="The Maw", MapName="_map_id_halo1_the_maw" },
 
-            new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Heretic", MapName="_map_id_halo2_the_heretic", IsCutscene=true },
+            new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(0.5), FriendlyName="Heretic", MapName="_map_id_halo2_the_heretic", IsCutscene=true },
             new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(3), FriendlyName="The Armory", MapName="_map_id_halo2_the_armory" },
             new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(5), FriendlyName="Cairo Station", MapName="_map_id_halo2_cairo_station" },
             new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(4), FriendlyName="Outskirts", MapName="_map_id_halo2_outskirts" },
@@ -78,7 +78,7 @@ namespace HRRandomizer.Data
             new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(2), FriendlyName="High Charity", MapName="_map_id_halo2_high_charity" },
             new Mission() { Game = Game.Halo2, WRTime = TimeSpan.FromMinutes(7), FriendlyName="The Great Journey", MapName="_map_id_halo2_the_great_journey" },
 
-            new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Arrival", MapName="_map_id_halo3_arrival", IsCutscene=true },
+            new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(0.5), FriendlyName="Arrival", MapName="_map_id_halo3_arrival", IsCutscene=true },
             new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(6), FriendlyName="Sierra 117", MapName="_map_id_halo3_sierra_117" },
             new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(8), FriendlyName="Crows Nest", MapName="_map_id_halo3_crows_nest" },
             new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(4), FriendlyName="Tsavo Highway", MapName="_map_id_halo3_tsavo_highway" },
@@ -88,9 +88,9 @@ namespace HRRandomizer.Data
             new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(10), FriendlyName="The Covenant", MapName="_map_id_halo3_the_covenant" },
             new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(6), FriendlyName="Cortana", MapName="_map_id_halo3_cortana" },
             new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(10), FriendlyName="Halo", MapName="_map_id_halo3_halo" },
-            new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Epilogue", MapName="_map_id_halo3_epilogue", IsCutscene=true },
+            new Mission() { Game = Game.Halo3, WRTime = TimeSpan.FromMinutes(0.5), FriendlyName="Epilogue", MapName="_map_id_halo3_epilogue", IsCutscene=true },
 
-            new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Prepare to Drop (Cutscene)", MapName="_map_id_halo3odst_prepare_to_drop", IsCutscene=true },
+            new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(0.5), FriendlyName="Prepare to Drop (Cutscene)", MapName="_map_id_halo3odst_prepare_to_drop", IsCutscene=true },
             new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(2), FriendlyName="Mombasa Streets (Prepare to Drop)", MapName="_map_id_halo3odst_mombasa_streets" },
             new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(2), FriendlyName="Tayari Plaza", MapName="_map_id_halo3odst_tayari_plaza" },
             new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(3), FriendlyName="Mombasa Streets (Drone Optic)", MapName="_map_id_halo3odst_mombasa_streets", InsertionPoint=1 },
@@ -106,9 +106,9 @@ namespace HRRandomizer.Data
             new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(1), FriendlyName="Mombasa Streets (Data Hive)", MapName="_map_id_halo3odst_mombasa_streets", InsertionPoint=6 },
             new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(10), FriendlyName="Data Hive", MapName="_map_id_halo3odst_data_hive" },
             new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(16), FriendlyName="Coastal Highway", MapName="_map_id_halo3odst_coastal_highway" },
-            new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Epilogue", MapName="_map_id_halo3odst_epilogue", IsCutscene=true },
+            new Mission() { Game = Game.Halo3ODST, WRTime = TimeSpan.FromMinutes(0.5), FriendlyName="Epilogue", MapName="_map_id_halo3odst_epilogue", IsCutscene=true },
 
-            new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Noble Actual", MapName="_map_id_haloreach_noble_actual", IsCutscene=true },
+            new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(0.5), FriendlyName="Noble Actual", MapName="_map_id_haloreach_noble_actual", IsCutscene=true },
             new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(5), FriendlyName="Winter Contingency", MapName="_map_id_haloreach_winter_contingency" },
             new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(5), FriendlyName="ONI Sword Base", MapName="_map_id_haloreach_oni_sword_base" },
             new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(3), FriendlyName="Nightfall", MapName="_map_id_haloreach_nightfall" },
@@ -118,10 +118,10 @@ namespace HRRandomizer.Data
             new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(7), FriendlyName="New Alexandria", MapName="_map_id_haloreach_new_alexandria" },
             new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(8), FriendlyName="The Package", MapName="_map_id_haloreach_the_package" },
             new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(9), FriendlyName="The Pillar of Autumn", MapName="_map_id_haloreach_the_pillar_of_autumn" },
-            new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(0), FriendlyName="The Pillar of Autumn (Credits)", MapName="_map_id_haloreach_the_pillar_of_autumn_credits", IsCutscene=true },
-            new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Lone Wolf", MapName="_map_id_haloreach_lone_wolf", IsCutscene=true },
+            new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(0.5), FriendlyName="The Pillar of Autumn (Credits)", MapName="_map_id_haloreach_the_pillar_of_autumn_credits", IsCutscene=true },
+            new Mission() { Game = Game.HaloReach, WRTime = TimeSpan.FromMinutes(0.5), FriendlyName="Lone Wolf", MapName="_map_id_haloreach_lone_wolf", IsCutscene=true },
 
-            new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(0), FriendlyName="Prologue", MapName="_map_id_halo4_prologue", IsCutscene=true },
+            new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(0.5), FriendlyName="Prologue", MapName="_map_id_halo4_prologue", IsCutscene=true },
             new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(4), FriendlyName="Dawn", MapName="_map_id_halo4_dawn" },
             new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(8), FriendlyName="Requiem", MapName="_map_id_halo4_requiem" },
             new Mission() { Game = Game.Halo4, WRTime = TimeSpan.FromMinutes(10), FriendlyName="Forerunner", MapName="_map_id_halo4_forerunner" },
@@ -146,11 +146,49 @@ namespace HRRandomizer.Data
         }
 
         // Return the cutscene to use for the given game
-        public static Mission GetGameDefaultCutscene(Game game)
+        public static Mission GetGameDefaultCutscene(Game game, List<Game> activeGames)
         {
-            if (game == Game.Halo1)
+            //if (game == Game.Halo1)
+            //{
+            //    // Prefer ODST if possible
+            //    if(activeGames.Contains(Game.Halo3ODST))
+            //    {
+            //        game = Game.Halo3ODST;
+            //    }
+            //    // Otherwise try to select from one of the existing games that are not H1
+            //    else if(activeGames.Where(x => x != Game.Halo1).Count() > 0)
+            //    {
+            //        game = activeGames.Where(x => x != Game.Halo1).First();
+            //    }
+
+            //    // If it's still not possible to select another game, default to ODST
+            //    if(game == Game.Halo1)
+            //    {
+            //        game = Game.Halo3ODST;
+            //    }
+            //}
+
+            if (game != Game.Halo3ODST)
             {
-                game = Game.Halo2;
+                if (activeGames.Where(x => x != Game.Halo1).Count() > 0)
+                {
+                    game = activeGames.Where(x => x != Game.Halo1).First();
+                }
+                else
+                {
+                    game = Game.Halo3ODST;
+                }
+            }
+            else
+            {
+                if (activeGames.Where(x => x != Game.Halo3ODST && x != Game.Halo1).Count() > 0)
+                {
+                    game = activeGames.Where(x => x != Game.Halo3ODST && x != Game.Halo1).First();
+                }
+                else
+                {
+                    game = Game.HaloReach;
+                }
             }
 
             switch (game)
